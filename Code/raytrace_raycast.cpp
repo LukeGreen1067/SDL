@@ -37,52 +37,43 @@ int map[MAPHEIGHT][MAPWIDTH] = {
 
 void getInput()
 {
-	switch (*keystate)
+	if (keystate[SDL_SCANCODE_A])
 	{
-	case SDL_SCANCODE_A:
 		gameState = STATE_MENU;
-		break;
-	case SDL_SCANCODE_D:
-		gameState = STATE_PLAY;
-		break;
-	case SDL_SCANCODE_W:
-		gameState = STATE_ABOUT;
-		break;
-	case SDL_SCANCODE_S:
-		gameState = STATE_QUIT;
-		break;
 	}
-};
-
-void loop(SDL_Window *window, SDL_Surface *screenSurface)
-{
-	SDL_Event e;
-	bool quit = false;
-	while (quit == false) //&& SDL_PollEvent(&e)
+	if (keystate[SDL_SCANCODE_D])
 	{
-		if (e.type == SDL_QUIT || gameState == STATE_QUIT)
-		{
-			quit = true;
-		}
+		gameState = STATE_PLAY;
+	}
 
-		getInput();
-		SDL_UpdateWindowSurface(window); // Update the surface
-		switch (gameState)
-		{
-		case STATE_MENU:
-			SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0x00, 0x00)); // Set colour Red
-			break;
-		case STATE_PLAY:
-			SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00)); // Set colour Green
-			break;
-		case STATE_ABOUT:
-			SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF)); // Set colour Blue
-			break;
-		case STATE_QUIT:
-			break;
-		}
+	if (keystate[SDL_SCANCODE_W])
+	{
+		gameState = STATE_ABOUT;
+	}
+
+	if (keystate[SDL_SCANCODE_S])
+	{
+		gameState = STATE_QUIT;
 	}
 };
+
+void getMenuState(SDL_Surface *screenSurface)
+{
+	switch (gameState)
+	{
+	case STATE_MENU:
+		SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0x00, 0x00)); // Set colour Red
+		break;
+	case STATE_PLAY:
+		SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00)); // Set colour Green
+		break;
+	case STATE_ABOUT:
+		SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF)); // Set colour Blue
+		break;
+	case STATE_QUIT:
+		break;
+	}
+}
 
 int main(int argc, char *args[])
 {
@@ -101,7 +92,22 @@ int main(int argc, char *args[])
 	}
 	screenSurface = SDL_GetWindowSurface(window);											// Get window surface
 	SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0x00)); // Fill the surface Black
-	loop(window, screenSurface);
+	// loop(window, screenSurface);
+	SDL_Event e;
+	bool quit = false;
+
+	while (quit == false)
+	{
+		while (SDL_PollEvent(&e))
+		{
+			if (e.type == SDL_QUIT)
+				quit = true;
+		}
+
+		getInput();
+		getGameState(screenSurface);
+		SDL_UpdateWindowSurface(window);
+	}
 	SDL_DestroyWindow(window); // Destroy window
 	SDL_Quit();				   // Quit SDL subsystems
 
