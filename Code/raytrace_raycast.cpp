@@ -1,6 +1,15 @@
 // https://lodev.org/cgtutor/raycasting.html#Untextured_Raycaster_
 // Amazing tutorial on Raycasting in general going to use this to get a base for this
 
+// https://fabiensanglard.net/b/gebbdoom.pdf
+// Blackbook of how to build Doom can use this for later renderers
+
+// https://github.com/jhhoward/Arduboy3D/releases
+// A crazy game built for arduboy that uses 3D raycasting to work
+
+// http://crait.net/download.php?file=CircuitDude.ino
+// Cool game that I will be basing code off of to make my engine
+
 // Using SDL and standard IO
 #include <SDL.h>
 #include <stdio.h>
@@ -37,6 +46,8 @@ int map[MAPHEIGHT][MAPWIDTH] = {
 
 void getInput()
 {
+	// Work out how to make SDL buttons for the game start even if this is just a menu system
+	// Will have to split this code to make the game inputs and menu inputs
 	if (keystate[SDL_SCANCODE_A])
 	{
 		gameState = STATE_MENU;
@@ -66,6 +77,7 @@ void getMenuState(SDL_Surface *screenSurface)
 		break;
 	case STATE_PLAY:
 		SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0xFF, 0x00)); // Set colour Green
+		// TODO: Add a renderer here to make raycasting using tutorial
 		break;
 	case STATE_ABOUT:
 		SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0xFF)); // Set colour Blue
@@ -92,10 +104,10 @@ int main(int argc, char *args[])
 	}
 	screenSurface = SDL_GetWindowSurface(window);											// Get window surface
 	SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0x00, 0x00, 0x00)); // Fill the surface Black
-	// loop(window, screenSurface);
 	SDL_Event e;
 	bool quit = false;
 
+	// gameLoop
 	while (quit == false)
 	{
 		while (SDL_PollEvent(&e))
@@ -105,9 +117,10 @@ int main(int argc, char *args[])
 		}
 
 		getInput();
-		getGameState(screenSurface);
+		getMenuState(screenSurface);
 		SDL_UpdateWindowSurface(window);
 	}
+
 	SDL_DestroyWindow(window); // Destroy window
 	SDL_Quit();				   // Quit SDL subsystems
 
