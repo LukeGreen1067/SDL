@@ -1,5 +1,5 @@
 #OBJS specifies which files to compile as part of the project
-OBJS = raytrace_raycast.cpp
+OBJS = Refactor.cpp
 
 #CC specifies which compiler we're using
 CC = g++
@@ -19,7 +19,7 @@ COMPILER_FLAGS = -w -Wl,-subsystem,windows
 LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2
 
 #OBJ_NAME specifies the name of our exectuable
-OBJ_NAME = raytrace_raycast
+OBJ_NAME = Refactor
 
 #This is the target that compiles our executable
 all : $(OBJS)
