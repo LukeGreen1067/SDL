@@ -104,7 +104,7 @@ void playerInit(){
     player.time = 0, player.oldTime = 0;
 }
 
-void verLine(int x, int y0, int y1, uint32_t color) {
+void verLine(int x, int y0, int y1, uint32_t color) {// I have no idea how this works 
     for (int y = y0; y <= y1; y++) {
         state.pixels[(y * SCREEN_WIDTH) + x] = color;
     }
@@ -225,7 +225,7 @@ void renderVideo(){
         }
         if (side == 1) {colour = colour / 2;}
 
-        verLine(x, 0, drawStart, 0xFF202020);
+        verLine(x, 0, drawStart, 0xFF202020); //These for some reason dont print the line i wasnt them to print
         verLine(x, drawStart, drawEnd, colour);
         verLine(x, drawEnd, SCREEN_HEIGHT - 1, 0xFF505050);
     }
@@ -266,8 +266,10 @@ int main(int argc, char *args[])
 			if (e.type == SDL_QUIT)
 				quit = true;
 		}
+        getInput();
         renderLoop();  
-        renderVideo();              
+        // renderVideo();         
+        verLine(1000, 100, 100, 0xFFFF00FF);
 	}
 
 	SDL_DestroyWindow(state.window); // Destroy window
