@@ -1,3 +1,5 @@
+// https://www.youtube.com/watch?v=TBGu3NNpF1Q good video on a compiler optimisation might be useful later
+
 #include <SDL.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -132,6 +134,15 @@ void getMenuState(SDL_Surface *screenSurface)
 }
 */
 
+void rotate(double rotSpeed){
+        double oldDirX = player.dirX;
+        player.dirX = player.dirX * cos(rotSpeed) - player.dirY * sin(rotSpeed);
+        player.dirY = oldDirX * sin(rotSpeed) + player.dirY * cos(rotSpeed);
+        double oldPlaneX = player.planeX;
+        player.planeX = player.planeX * cos(rotSpeed) - player.planeY * sin(rotSpeed);
+        player.planeY = oldPlaneX * sin(rotSpeed) + player.planeY * cos(rotSpeed);
+}
+
 void getInput()
 {
 	// Work out how to make SDL buttons for the game start even if this is just a menu system
@@ -145,20 +156,10 @@ void getInput()
         if(map[int(player.posX)][int(player.posY - player.dirY * player.moveSpeed)] == false) player.posY -= player.dirY * player.moveSpeed;
     }
 	if (keystate[SDL_SCANCODE_D]){
-        double oldDirX = player.dirX;
-        player.dirX = player.dirX * cos(-player.rotSpeed) - player.dirY * sin(-player.rotSpeed);
-        player.dirY = oldDirX * sin(-player.rotSpeed) + player.dirY * cos(-player.rotSpeed);
-        double oldPlaneX = player.planeX;
-        player.planeX = player.planeX * cos(-player.rotSpeed) - player.planeY * sin(-player.rotSpeed);
-        player.planeY = oldPlaneX * sin(-player.rotSpeed) + player.planeY * cos(-player.rotSpeed);
+        rotate(-player.rotSpeed);
     }
 	if (keystate[SDL_SCANCODE_A]){
-        double oldDirX = player.dirX;
-        player.dirX = player.dirX * cos(player.rotSpeed) - player.dirY * sin(player.rotSpeed);
-        player.dirY = oldDirX * sin(player.rotSpeed) + player.dirY * cos(player.rotSpeed);
-        double oldPlaneX = player.planeX;
-        player.planeX = player.planeX * cos(player.rotSpeed) - player.planeY * sin(player.rotSpeed);
-        player.planeY = oldPlaneX * sin(player.rotSpeed) + player.planeY * cos(player.rotSpeed);
+        rotate(player.rotSpeed);
     }
 	if (keystate[SDL_SCANCODE_UP]){gameState = STATE_MENU;}
 	if (keystate[SDL_SCANCODE_RIGHT]){gameState = STATE_PLAY;}
