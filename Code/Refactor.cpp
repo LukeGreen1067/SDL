@@ -143,24 +143,19 @@ void rotate(double rotSpeed){
         player.planeY = oldPlaneX * sin(rotSpeed) + player.planeY * cos(rotSpeed);
 }
 
+void move(double dirX, double dirY){
+        if(map[int(player.posX + dirX * player.moveSpeed)][int(player.posY)] == false) player.posX += dirX * player.moveSpeed;
+        if(map[int(player.posX)][int(player.posY + dirY * player.moveSpeed)] == false) player.posY += dirY * player.moveSpeed;
+}
+
 void getInput()
 {
 	// Work out how to make SDL buttons for the game start even if this is just a menu system
 	// Will have to split this code to make the game inputs and menu inputs
-	if (keystate[SDL_SCANCODE_W]){
-        if(map[int(player.posX + player.dirX * player.moveSpeed)][int(player.posY)] == false) player.posX += player.dirX * player.moveSpeed;
-        if(map[int(player.posX)][int(player.posY + player.dirY * player.moveSpeed)] == false) player.posY += player.dirY * player.moveSpeed;
-    }
-	if (keystate[SDL_SCANCODE_S]){
-        if(map[int(player.posX - player.dirX * player.moveSpeed)][int(player.posY)] == false) player.posX -= player.dirX * player.moveSpeed;
-        if(map[int(player.posX)][int(player.posY - player.dirY * player.moveSpeed)] == false) player.posY -= player.dirY * player.moveSpeed;
-    }
-	if (keystate[SDL_SCANCODE_D]){
-        rotate(-player.rotSpeed);
-    }
-	if (keystate[SDL_SCANCODE_A]){
-        rotate(player.rotSpeed);
-    }
+	if (keystate[SDL_SCANCODE_W]){move(player.dirX, player.dirY);}
+	if (keystate[SDL_SCANCODE_S]){move(-player.dirX, -player.dirY);}
+	if (keystate[SDL_SCANCODE_D]){rotate(-player.rotSpeed);}
+	if (keystate[SDL_SCANCODE_A]){rotate(player.rotSpeed);}
 	if (keystate[SDL_SCANCODE_UP]){gameState = STATE_MENU;}
 	if (keystate[SDL_SCANCODE_RIGHT]){gameState = STATE_PLAY;}
 	if (keystate[SDL_SCANCODE_LEFT]){gameState = STATE_ABOUT;}
@@ -226,12 +221,12 @@ void renderVideo(){
         }
         if (side == 1) {colour = colour / 2;}
 
-        verLine(x, 0, drawStart, 0xFF202020); //These for some reason dont print the line i wasnt them to print
+        verLine(x, 0, drawStart, 0xFF202020);
         verLine(x, drawStart, drawEnd, colour);
         verLine(x, drawEnd, SCREEN_HEIGHT - 1, 0xFF505050);
     }
     player.oldTime = player.time;
-    player.time = SDL_GetTicks64();
+    player.time = SDL_GetTicks();
     double frameTime = (player.time - player.oldTime) / 1000.0; //frameTime is the time this frame has taken, in seconds
 
     player.moveSpeed = frameTime * 5.0;
@@ -268,9 +263,12 @@ int main(int argc, char *args[])
 				quit = true;
 		}
         getInput();
-        renderLoop();  
+
+        for(int x = 0; x <= SCREEN_HEIGHT; x++){
+            verLine(x, 100, 100, 0xFFFF00FF);
+        }
         // renderVideo();         
-        verLine(1000, 100, 100, 0xFFFF00FF);
+        renderLoop();  
 	}
 
 	SDL_DestroyWindow(state.window); // Destroy window
