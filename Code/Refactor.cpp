@@ -1,5 +1,7 @@
 // https://www.youtube.com/watch?v=TBGu3NNpF1Q good video on a compiler optimisation might be useful later
 
+
+
 #include <SDL.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -16,6 +18,11 @@
 #define SCREEN_HEIGHT 480
 #define MAPHEIGHT 10
 #define MAPWIDTH 10
+#define UNITSIZE 64
+#define PI 3.14159265359
+#define PI2 PI/2
+#define PI3 3*PI2
+#define DR 0.0174533 
 
 //------------------------------------------------Type/ Struct Definitions----------------------------------------------------------------
 
@@ -30,11 +37,13 @@ struct {
     bool quit;
 
     v2 pos, dir, plane;
+    float angle;
 } state;
 
 struct {
-    double posX, posY, dirX, dirY, planeX, planeY, time, oldTime, moveSpeed, rotSpeed;
-} player;
+    int rayAngle, depthOfFeild, mapX, mapY, mapPos;
+    float rayX, rayY, xOffset, yOffset, horX, horY, verX, verY, disT;
+} ray;
 
 #define STATE_MENU 0
 #define STATE_PLAY 1
@@ -47,17 +56,18 @@ const uint8_t *keystate = SDL_GetKeyboardState(NULL);
 
 //------------------------------------------------Main Functions--------------------------------------------------------------------------
 
-int map[MAPHEIGHT][MAPWIDTH] = {
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 2, 2, 0, 0, 0, 1},
-	{1, 0, 0, 0, 2, 2, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+int map[MAPHEIGHT * MAPWIDTH]=
+{
+    1,1,1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,2,2,0,0,0,1,
+    1,0,0,0,2,2,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,0,1,
+    1,1,1,1,1,1,1,1,1,1
 };
 
 //This sets up the code like the reference on https://github.com/jdah/doomenstein-3d/blob/main/src/main_wolf.c
@@ -98,19 +108,7 @@ void SDLInit(){
         "failed to create SDL texture: %s\n", SDL_GetError());
 }
 
-void playerInit(){
-    player.posX = 22, player.posY = 12;
-    player.dirX = -1, player.dirY = 0;
-    player.planeX = 0, player.planeY = 0.66;
 
-    player.time = 0, player.oldTime = 0;
-}
-
-void verLine(int x, int y0, int y1, uint32_t color) {// I have no idea how this works 
-    for (int y = y0; y <= y1; y++) {
-        state.pixels[(y * SCREEN_WIDTH) + x] = color;
-    }
-}
 /*
 void getMenuState(SDL_Surface *screenSurface)
 {
@@ -134,103 +132,139 @@ void getMenuState(SDL_Surface *screenSurface)
 }
 */
 
-void rotate(double rotSpeed){
-        double oldDirX = player.dirX;
-        player.dirX = player.dirX * cos(rotSpeed) - player.dirY * sin(rotSpeed);
-        player.dirY = oldDirX * sin(rotSpeed) + player.dirY * cos(rotSpeed);
-        double oldPlaneX = player.planeX;
-        player.planeX = player.planeX * cos(rotSpeed) - player.planeY * sin(rotSpeed);
-        player.planeY = oldPlaneX * sin(rotSpeed) + player.planeY * cos(rotSpeed);
-}
-
-void move(double dirX, double dirY){
-        if(map[int(player.posX + dirX * player.moveSpeed)][int(player.posY)] == false) player.posX += dirX * player.moveSpeed;
-        if(map[int(player.posX)][int(player.posY + dirY * player.moveSpeed)] == false) player.posY += dirY * player.moveSpeed;
-}
-
 void getInput()
 {
 	// Work out how to make SDL buttons for the game start even if this is just a menu system
 	// Will have to split this code to make the game inputs and menu inputs
-	if (keystate[SDL_SCANCODE_W]){move(player.dirX, player.dirY);}
-	if (keystate[SDL_SCANCODE_S]){move(-player.dirX, -player.dirY);}
-	if (keystate[SDL_SCANCODE_D]){rotate(-player.rotSpeed);}
-	if (keystate[SDL_SCANCODE_A]){rotate(player.rotSpeed);}
+
+    // Move the player forwards and backwards
+	if (keystate[SDL_SCANCODE_W]){state.pos.x += state.dir.x; state.pos.y += state.dir.y;}
+	if (keystate[SDL_SCANCODE_S]){state.pos.x -= state.dir.x; state.pos.y -= state.dir.y;}
+
+    // Rotate the player direction in radians
+	if (keystate[SDL_SCANCODE_D]){        
+        state.angle -= 0.1; 
+        if(state.angle > 2*PI){ 
+            state.angle -= 2*PI;
+        } 
+        state.dir.x = cos(state.angle) *5; 
+        state.dir.y = sin(state.angle) *5; 
+    }
+	if (keystate[SDL_SCANCODE_A]){
+        state.angle -= 0.1; 
+        if(state.angle < 0){ 
+            state.angle += 2*PI;
+        } 
+        state.dir.x = cos(state.angle) *5; 
+        state.dir.y = sin(state.angle) *5; 
+    }
 	if (keystate[SDL_SCANCODE_UP]){gameState = STATE_MENU;}
 	if (keystate[SDL_SCANCODE_RIGHT]){gameState = STATE_PLAY;}
 	if (keystate[SDL_SCANCODE_LEFT]){gameState = STATE_ABOUT;}
 	if (keystate[SDL_SCANCODE_DOWN]){gameState = STATE_QUIT;}
 };
 
-void renderVideo(){  
-    for(int x = 0; x < SCREEN_WIDTH; x++)
-    {
-        double cameraX = 2 * x / double(SCREEN_WIDTH) - 1;
-        double rayDirX = player.dirX + player.planeX * cameraX;
-        double rayDirY = player.dirY + player.planeY * cameraX;
+float dist(float ax, float ay, float bx, float by, float ang){
+    return ( ( (bx-ax)*(bx - ax) + (by-ay) * (by-ay)) ) ;
+}
 
-        int mapX = int(player.posX);
-        int mapY = int(player.posY);
-
-        double sideDistX;
-        double sideDistY;
-
-        double deltaDistX = (rayDirX == 0) ? 1e30 : std::abs(1 / rayDirX);
-        double deltaDistY = (rayDirY == 0) ? 1e30 : std::abs(1 / rayDirY);
-        double perpWallDist;
-
-        int stepX;
-        int stepY;
-
-        int hit = 0;
-        int side;
-
-        if (rayDirX < 0){
-            stepX = -1;
-            sideDistX = (player.posX - mapX) * deltaDistX;
+void DrawRays(){
+    ray.rayAngle = state.angle - DR * 30;
+    if(ray.rayAngle<0){ray.rayAngle += 2*PI;}
+    if(ray.rayAngle>2*PI) {ray.rayAngle -= 2*PI;}
+    for(int i = 0; i < 60; i++){
+        ray.depthOfFeild = 0;
+        float disH = 10000000;
+        ray.horX = state.pos.x;
+        ray.horY = state.pos.y;
+        float aTan=-1/tan(ray.rayAngle);
+        if(ray.rayAngle>PI){
+            ray.rayY = (((int)state.pos.y >> 6) << 6) - 0.00001; //Get the nearest 64 rounding magic
+            ray.rayX = (state.pos.y - ray.rayY) * aTan + state.pos.x;
+            ray.yOffset = -64;
+            ray.xOffset =-ray.yOffset*aTan; 
         }
-        else{
-            stepX = 1;
-            sideDistX = (mapX + 1.0 - player.posX) * deltaDistX;
+        if(ray.rayAngle<PI){
+            ray.rayY = (((int)state.pos.y >> 6) << 6) - 0.00001; //Get the nearest 64 rounding magic
+            ray.rayX = (state.pos.y - ray.rayY) * aTan + state.pos.x;
+            ray.yOffset = -64;
+            ray.xOffset =-ray.yOffset*aTan; 
         }
-        if (rayDirY < 0){
-            stepY = -1;
-            sideDistY = (player.posY - mapY) * deltaDistY;
+        if(ray.rayAngle == 0 || ray.rayAngle == PI){
+            ray.rayX = state.pos.x;
+            ray.rayY = state.pos.y;
+            ray.depthOfFeild=8;
         }
-        else{
-            stepY = 1;
-            sideDistY = (mapY + 1.0 - player.posY) * deltaDistY;
+        while(ray.depthOfFeild < 8){
+            ray.mapX = (int) (ray.rayX) >> 6;
+            ray.mapY = (int) (ray.rayY) >> 6;
+            ray.mapPos = ray.mapY*MAPHEIGHT+ray.mapX;
+            if(ray.mapPos > 0 && ray.mapPos < ray.mapX*ray.mapY && map[ray.mapPos] == 1){
+                ray.horX=ray.rayX;
+                ray.horY=ray.rayY;
+                disH = dist(state.pos.x, state.pos.y, ray.horX, ray.horY, ray.rayAngle);
+                ray.depthOfFeild = 8;
+            }
+            else{
+            ray.rayX += ray.xOffset;
+            ray.rayY += ray.yOffset;
+            ray.depthOfFeild+=1;
+            }
         }
 
-        if(side == 0) perpWallDist = (sideDistX - deltaDistX);
-        else          perpWallDist = (sideDistY - deltaDistY);
 
-        int lineHeight = (int)(SCREEN_HEIGHT / perpWallDist);
-
-        int drawStart = -lineHeight / 2 + SCREEN_HEIGHT / 2;
-        if(drawStart < 0)drawStart = 0;
-        int drawEnd = lineHeight / 2 + SCREEN_HEIGHT / 2;
-        if(drawEnd >= SCREEN_HEIGHT)drawEnd = SCREEN_HEIGHT - 1;
-
-        uint32_t colour;
-        switch (map[mapX][mapY]) {
-        case 1: colour = 0xFF0000FF; break;
-        case 2: colour = 0xFF00FF00; break;
-        case 3: colour = 0xFFFF0000; break;
-        case 4: colour = 0xFFFF00FF; break;
+        ray.depthOfFeild = 0;
+        float disV = 10000000;
+        ray.verX = state.pos.x;
+        ray.verY = state.pos.y;
+        float nTan=-tan(ray.rayAngle);
+        if(ray.rayAngle>PI2 && ray.rayAngle < PI3){
+            ray.rayX = (((int)state.pos.x >> 6) << 6) - 0.00001; //Get the nearest 64 rounding magic
+            ray.rayY = (state.pos.y - ray.rayY) * nTan + state.pos.y;
+            ray.xOffset = -64;
+            ray.yOffset =-ray.xOffset*nTan; 
         }
-        if (side == 1) {colour = colour / 2;}
+        if(ray.rayAngle<PI2 || ray.rayAngle>PI3){
+            ray.rayX = (((int)state.pos.x >> 6) << 6) + 64; //Get the nearest 64 rounding magic
+            ray.rayY = (state.pos.x - ray.rayX) * nTan + state.pos.y;
+            ray.xOffset = -64;
+            ray.yOffset =-ray.xOffset*nTan; 
+        }
+        if(ray.rayAngle == 0 || ray.rayAngle == PI){
+            ray.rayX = state.pos.x;
+            ray.rayY = state.pos.y;
+            ray.depthOfFeild=8;
+        }
+        while(ray.depthOfFeild < 8){
+            ray.mapX = (int) (ray.rayX) >> 6;
+            ray.mapY = (int) (ray.rayY) >> 6;
+            ray.mapPos = ray.mapY*MAPHEIGHT+ray.mapX;
+            if(ray.mapPos > 0 && ray.mapPos < ray.mapX*ray.mapY && map[ray.mapPos] == 1){
+                ray.verX=ray.rayX;
+                ray.verY=ray.rayY;
+                disV = dist(state.pos.x, state.pos.y, ray.verX, ray.verY, ray.rayAngle);
+                ray.depthOfFeild = 8;
+            }
+            else{
+            ray.rayX += ray.xOffset;
+            ray.rayY += ray.yOffset;
+            ray.depthOfFeild+=1;
+            }
+        }
+        if(disV<disH) {ray.rayX = ray.verX; ray.rayY= ray.verY; ray.disT = disV;}
+        if(disV>disH) {ray.rayX = ray.horX; ray.rayY= ray.horY; ray.disT = disH;}
+        ray.rayAngle += DR;
+        if(ray.rayAngle<0){ray.rayAngle += 2*PI;}
+        if(ray.rayAngle>2*PI) {ray.rayAngle -= 2*PI;}
 
-        verLine(x, 0, drawStart, 0xFF202020);
-        verLine(x, drawStart, drawEnd, colour);
-        verLine(x, drawEnd, SCREEN_HEIGHT - 1, 0xFF505050);
+        float lineH = (UNITSIZE*SCREEN_HEIGHT)/ray.disT; 
+        if(lineH>SCREEN_HEIGHT){
+            lineH=SCREEN_HEIGHT;
+        }
+        
+        
+
     }
-    player.oldTime = player.time;
-    player.time = SDL_GetTicks();
-    double frameTime = (player.time - player.oldTime) / 1000.0; //frameTime is the time this frame has taken, in seconds
-
-    player.moveSpeed = frameTime * 5.0;
-    player.rotSpeed = frameTime * 3.0;
 }
 
 void renderLoop(){
@@ -249,8 +283,6 @@ void renderLoop(){
 int main(int argc, char *args[])
 {
     SDLInit();
-    playerInit();
-
 	SDL_Event e;
 	bool quit = false;
 
@@ -263,10 +295,6 @@ int main(int argc, char *args[])
 				quit = true;
 		}
         getInput();
-
-        for(int x = 0; x <= SCREEN_HEIGHT; x++){
-            verLine(x, 100, 100, 0xFFFF00FF);
-        }
         // renderVideo();         
         renderLoop();  
 	}
