@@ -158,10 +158,10 @@ void getInput()
         state.dir.x = cos(state.angle) *5; 
         state.dir.y = sin(state.angle) *5; 
     }
-	if (keystate[SDL_SCANCODE_UP]){gameState = STATE_MENU;}
-	if (keystate[SDL_SCANCODE_RIGHT]){gameState = STATE_PLAY;}
-	if (keystate[SDL_SCANCODE_LEFT]){gameState = STATE_ABOUT;}
-	if (keystate[SDL_SCANCODE_DOWN]){gameState = STATE_QUIT;}
+	// if (keystate[SDL_SCANCODE_UP]){gameState = STATE_MENU;}
+	// if (keystate[SDL_SCANCODE_RIGHT]){gameState = STATE_PLAY;}
+	// if (keystate[SDL_SCANCODE_LEFT]){gameState = STATE_ABOUT;}
+	// if (keystate[SDL_SCANCODE_DOWN]){gameState = STATE_QUIT;}
 };
 
 float dist(float ax, float ay, float bx, float by, float ang){
