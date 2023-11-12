@@ -168,6 +168,12 @@ float dist(float ax, float ay, float bx, float by, float ang){
     return ( ( (bx-ax)*(bx - ax) + (by-ay) * (by-ay)) ) ;
 }
 
+static void verline(int x, int y0, int y1, uint32_t color) {
+    for (int y = y0; y <= y1; y++) {
+        state.pixels[(y * SCREEN_WIDTH) + x] = color;
+    }
+}
+
 void DrawRays(){
     ray.rayAngle = state.angle - DR * 30;
     if(ray.rayAngle<0){ray.rayAngle += 2*PI;}
@@ -261,9 +267,6 @@ void DrawRays(){
         if(lineH>SCREEN_HEIGHT){
             lineH=SCREEN_HEIGHT;
         }
-        
-        
-
     }
 }
 
